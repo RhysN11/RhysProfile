@@ -3,22 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rhys Newman | Profile</title>
+  <title>Rhys Newman | Visual Item Finder</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
       background: #f3f4f6;
+      color: #111827;
+    }
+    header {
+      background: #4f46e5;
+      color: white;
+      padding: 20px;
+      text-align: center;
     }
     .container {
-      max-width: 800px;
-      margin: 40px auto;
-      background: white;
+      max-width: 900px;
+      margin: 30px auto;
       padding: 20px;
+      background: white;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
+    h1, h2, h3 { margin-top: 0; }
     .profile {
       display: flex;
       align-items: center;
@@ -28,82 +36,77 @@
       width: 60px;
       height: 60px;
       border-radius: 50%;
-      background: #4f46e5;
+      background: #2563eb;
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
+      font-size: 22px;
       font-weight: bold;
-      font-size: 20px;
     }
-    h1 { margin: 0; }
-    h2 { margin-top: 20px; }
     img.preview {
       max-width: 100%;
-      margin-top: 15px;
+      margin: 20px 0;
       border-radius: 8px;
       border: 1px solid #ddd;
     }
-    ul {
-      padding-left: 20px;
-    }
+    ul { padding-left: 20px; }
     .tag {
       display: inline-block;
-      margin: 5px 5px 0 0;
-      padding: 5px 10px;
+      margin: 5px;
+      padding: 6px 10px;
       background: #e5e7eb;
       border-radius: 6px;
       font-size: 14px;
     }
-    a { color: #2563eb; }
+    .tag a { text-decoration: none; color: #111827; }
+    .tag:hover { background: #d1d5db; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button {
+      padding: 10px 15px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #4f46e5;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover { background: #4338ca; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Profile Header -->
-    <div class="profile">
-      <div class="avatar">RN</div>
-      <div>
-        <h1>Rhys Newman</h1>
-        <p>Collector • Bargain hunter • Maker</p>
-      </div>
-    </div>
+  <header>
+    <h1>Rhys Newman's Visual Item Finder</h1>
+    <p>Collector • Bargain hunter • Maker</p>
+  </header>
 
-    <!-- Upload -->
+  <div class="container">
+    <!-- Upload Section -->
     <h2>Upload or Take a Picture</h2>
     <input type="file" accept="image/*" id="fileInput">
+    <br>
     <img id="preview" class="preview" style="display:none;" alt="Preview">
 
-    <!-- Results -->
+    <!-- Results Section -->
     <div id="results" style="display:none;">
-      <h2>Recognized: Vintage Ceramic Vase</h2>
-      <p>Confidence: 92%</p>
+      <h2>Recognized Item: Vintage Ceramic Vase</h2>
+      <p><strong>Confidence:</strong> 92%</p>
 
       <h3>Sellers</h3>
       <ul>
-        <li>alice_sells_things (eBay) — $42.50 —
-          <a href="https://www.ebay.com" target="_blank">View</a>
-        </li>
-        <li>vintage-lair (Etsy) — $39.00 —
-          <a href="https://www.etsy.com" target="_blank">View</a>
-        </li>
-        <li>localgarage (Facebook Marketplace) — $30.00 —
-          <a href="https://www.facebook.com/marketplace/" target="_blank">View</a>
-        </li>
+        <li><strong>alice_sells_things</strong> (eBay) — $42.50 — <a href="https://www.ebay.com" target="_blank">View</a></li>
+        <li><strong>vintage-lair</strong> (Etsy) — $39.00 — <a href="https://www.etsy.com" target="_blank">View</a></li>
+        <li><strong>localgarage</strong> (Facebook Marketplace) — $30.00 — <a href="https://www.facebook.com/marketplace/" target="_blank">View</a></li>
       </ul>
-      <p>Average price: $37.17</p>
+      <p><strong>Average price:</strong> $37.17</p>
 
       <h3>Best Deals</h3>
       <ul>
-        <li>Chipped vase (Facebook) — $18.00 —
-          <a href="https://www.facebook.com/marketplace/" target="_blank">Open</a>
-        </li>
-        <li>Used vase (Etsy) — $25.00 —
-          <a href="https://www.etsy.com" target="_blank">Open</a>
-        </li>
-        <li>Auction ending soon (eBay) — $20.00 —
-          <a href="https://www.ebay.com" target="_blank">Open</a>
-        </li>
+        <li>Chipped vase (Facebook) — $18.00 — <a href="https://www.facebook.com/marketplace/" target="_blank">Open</a></li>
+        <li>Used vase (Etsy) — $25.00 — <a href="https://www.etsy.com" target="_blank">Open</a></li>
+        <li>Auction ending soon (eBay) — $20.00 — <a href="https://www.ebay.com" target="_blank">Open</a></li>
       </ul>
 
       <h3>Relative Searches</h3>
@@ -125,7 +128,7 @@
       if (!file) return;
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
-      results.style.display = "block"; // always show mock results
+      results.style.display = "block"; // show mocked results
     });
   </script>
 </body>
