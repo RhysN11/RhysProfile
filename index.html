@@ -1,214 +1,132 @@
-import React, { useState, useRef } from "react";
-
-// Personal Profile + Visual Item Finder
-// Single-file React component (default export) ready to drop into a React app (Vite, Create React App, Next.js page, etc.)
-// Styling uses Tailwind utility classes.
-// Notes:
-// - This component calls two placeholder endpoints: POST /api/recognize (multipart/form-data with `image`) and GET /api/search?query=...
-// - If those endpoints aren't available it falls back to a mocked demo response so the UI can be tried locally.
-// - For production you'll implement serverless functions / Node endpoints that use image recognition (Custom Vision / CLIP / Google Vision) and marketplace APIs (eBay Finding API, Etsy API, SerpAPI / scrapers for other marketplaces where TOS allows).
-
-export default function App() {
-  const [profileName, setProfileName] = useState("Rhys Newman");
-  const [bio, setBio] = useState("Collector • Bargain hunter • Maker");
-  const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState(null);
-  const fileRef = useRef(null);
-
-  // Mock fallback if backend not provided
-  const mockResponse = (query) => ({
-    query,
-    recognized: {
-      label: query || "vintage ceramic vase",
-      confidence: 0.92,
-    },
-    sellers: [
-      { name: "alice_sells_things", marketplace: "eBay", price: 42.5, url: "https://www.ebay.com/sch/i.html?_nkw=vintage+ceramic+vase" },
-      { name: "vintage-lair", marketplace: "Etsy", price: 39.0, url: "https://www.etsy.com/search?q=vintage+ceramic+vase" },
-      { name: "localgarage", marketplace: "Facebook Marketplace", price: 30.0, url: "https://www.facebook.com/marketplace/search/?query=vintage%20ceramic%20vase" },
-    ],
-    averagePrice: 37.17,
-    relativeSearches: ["mid-century vases", "ceramic planters", "vase repair kits"],
-    bestDeals: [
-      { title: "Chipped vase (good price)", marketplace: "Facebook Marketplace", price: 18.0, url: "https://www.facebook.com/marketplace/search/?query=vase" },
-      { title: "Seller: vintage-lair — used", marketplace: "Etsy", price: 25.0, url: "https://www.etsy.com/search?q=vase+used" },
-      { title: "Auction ending soon", marketplace: "eBay", price: 20.0, url: "https://www.ebay.com/sch/i.html?_nkw=vase&LH_Auction=1" },
-    ],
-  });
-
-  async function handleFile(file) {
-    setResults(null);
-    if (!file) return;
-
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-    setLoading(true);
-
-    try {
-      // Step 1: send image to recognition endpoint
-      // This is a placeholder. Replace /api/recognize with your serverless function path.
-      const form = new FormData();
-      form.append("image", file);
-
-      let recogJson = null;
-      try {
-        const recogRes = await fetch("/api/recognize", {
-          method: "POST",
-          body: form,
-        });
-        if (recogRes.ok) recogJson = await recogRes.json();
-      } catch (e) {
-        // network failed or endpoint not available
-        recogJson = null;
-      }
-
-      // If recognition returned a text label, use it. Otherwise fallback to a mocked label.
-      const label = (recogJson && recogJson.label) || "vintage ceramic vase";
-
-      // Step 2: query marketplaces for listings containing that label
-      // Replace /api/search?query=... with your own backend that queries eBay/Etsy/etc using official APIs.
-      let searchJson = null;
-      try {
-        const url = `/api/search?query=${encodeURIComponent(label)}`;
-        const searchRes = await fetch(url);
-        if (searchRes.ok) searchJson = await searchRes.json();
-      } catch (e) {
-        searchJson = null;
-      }
-
-      const final = searchJson || mockResponse(label);
-      setResults(final);
-    } finally {
-      setLoading(false);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rhys Newman | Profile</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
     }
-  }
-
-  function onFileChange(e) {
-    const f = e.target.files && e.target.files[0];
-    if (f) handleFile(f);
-  }
-
-  function triggerCamera() {
-    if (fileRef.current) fileRef.current.click();
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-6 flex flex-col items-center">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-md p-6">
-        <header className="flex items-center gap-4">
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-pink-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
-            {profileName.split(" ").map(n=>n[0]).slice(0,2).join("")}
-          </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-semibold">{profileName}</h1>
-            <p className="text-sm text-slate-600">{bio}</p>
-          </div>
-          <div>
-            <button className="px-4 py-2 rounded-md border" onClick={()=>{setProfileName(prompt("Profile name:", profileName) || profileName)}}>Edit</button>
-          </div>
-        </header>
-
-        <main className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <section className="md:col-span-1 flex flex-col items-center">
-            <div className="w-full border border-dashed rounded-lg p-4 flex flex-col items-center">
-              {imagePreview ? (
-                <img src={imagePreview} alt="preview" className="w-full h-48 object-contain rounded" />
-              ) : (
-                <div className="w-full h-48 flex items-center justify-center text-slate-400">No image selected</div>
-              )}
-
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFileChange} className="hidden" />
-
-              <div className="mt-4 flex gap-2">
-                <button onClick={triggerCamera} className="px-4 py-2 bg-indigo-600 text-white rounded">Take photo / Upload</button>
-                <button onClick={()=>{ setImagePreview(null); setResults(null); }} className="px-4 py-2 border rounded">Clear</button>
-              </div>
-
-              <p className="mt-3 text-xs text-slate-500 text-center">Tip: take a clear photo of the item on a neutral background for best recognition.</p>
-            </div>
-
-            <div className="mt-4 w-full">
-              <h3 className="text-sm font-semibold">Quick marketplace links</h3>
-              <ul className="mt-2 text-sm text-slate-600">
-                <li><a className="underline" href="https://www.ebay.com" target="_blank" rel="noreferrer">eBay</a></li>
-                <li><a className="underline" href="https://www.etsy.com" target="_blank" rel="noreferrer">Etsy</a></li>
-                <li><a className="underline" href="https://www.facebook.com/marketplace/" target="_blank" rel="noreferrer">Facebook Marketplace</a></li>
-              </ul>
-            </div>
-          </section>
-
-          <section className="md:col-span-2">
-            <div className="p-4 bg-slate-50 rounded-lg min-h-[220px]">
-              {loading ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin" />
-                  <div>Looking up matches and prices...</div>
-                </div>
-              ) : results ? (
-                <div>
-                  <h2 className="text-lg font-semibold">Recognized: {results.recognized.label} <span className="text-sm text-slate-500">(confidence {(results.recognized.confidence*100).toFixed(0)}%)</span></h2>
-
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white p-3 rounded shadow-sm">
-                      <h3 className="font-medium">Sellers & listings</h3>
-                      <ul className="mt-2 space-y-2 text-sm">
-                        {results.sellers.map((s, i) => (
-                          <li key={i} className="flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold">{s.name}</div>
-                              <div className="text-xs text-slate-500">{s.marketplace}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">${s.price.toFixed(2)}</div>
-                              <a className="text-xs underline" href={s.url} target="_blank" rel="noreferrer">View</a>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div className="mt-3 border-t pt-3 text-sm">
-                        <div>Average price: <span className="font-semibold">${(parseFloat(results.averagePrice) || 0).toFixed(2)}</span></div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white p-3 rounded shadow-sm">
-                      <h3 className="font-medium">Best deals</h3>
-                      <ul className="mt-2 space-y-2 text-sm">
-                        {results.bestDeals.map((d, i) => (
-                          <li key={i} className="flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold">{d.title}</div>
-                              <div className="text-xs text-slate-500">{d.marketplace}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium">${d.price.toFixed(2)}</div>
-                              <a className="text-xs underline" href={d.url} target="_blank" rel="noreferrer">Open</a>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="col-span-2 bg-white p-3 rounded shadow-sm">
-                      <h3 className="font-medium">Relative searches</h3>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {results.relativeSearches.map((r, i) => (
-                          <a key={i} className="px-3 py-1 bg-slate-100 rounded text-sm" href={`https://www.google.com/search?q=${encodeURIComponent(r)}`} target="_blank" rel="noreferrer">{r}</a>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-slate-500">Take a photo of an item and this app will attempt to find matching sellers, average price, relative searches, and suggest possible deals across marketplaces.</div>
-              )}
-            </div>
-          </section>
-        </main>
-
-        <footer className="mt-6 text-sm text-slate-500">Built with privacy in mind — images are sent to your configured backend for processing. Readme/hosting instructions available in repo.</footer>
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #4f46e5;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+    }
+    h1 { margin: 0; }
+    h2 { margin-top: 20px; }
+    img.preview {
+      max-width: 100%;
+      margin-top: 15px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    .tag {
+      display: inline-block;
+      margin: 5px 5px 0 0;
+      padding: 5px 10px;
+      background: #e5e7eb;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Profile Header -->
+    <div class="profile">
+      <div class="avatar">RN</div>
+      <div>
+        <h1>Rhys Newman</h1>
+        <p>Collector • Bargain hunter • Maker</p>
       </div>
     </div>
-  );
-}
+
+    <!-- Upload -->
+    <h2>Upload or Take a Picture</h2>
+    <input type="file" accept="image/*" id="fileInput">
+    <img id="preview" class="preview" style="display:none;" alt="Preview">
+
+    <!-- Results -->
+    <div id="results" style="display:none;">
+      <h2>Recognized: Vintage Ceramic Vase</h2>
+      <p>Confidence: 92%</p>
+
+      <h3>Sellers</h3>
+      <ul>
+        <li>alice_sells_things (eBay) — $42.50 —
+          <a href="https://www.ebay.com" target="_blank">View</a>
+        </li>
+        <li>vintage-lair (Etsy) — $39.00 —
+          <a href="https://www.etsy.com" target="_blank">View</a>
+        </li>
+        <li>localgarage (Facebook Marketplace) — $30.00 —
+          <a href="https://www.facebook.com/marketplace/" target="_blank">View</a>
+        </li>
+      </ul>
+      <p>Average price: $37.17</p>
+
+      <h3>Best Deals</h3>
+      <ul>
+        <li>Chipped vase (Facebook) — $18.00 —
+          <a href="https://www.facebook.com/marketplace/" target="_blank">Open</a>
+        </li>
+        <li>Used vase (Etsy) — $25.00 —
+          <a href="https://www.etsy.com" target="_blank">Open</a>
+        </li>
+        <li>Auction ending soon (eBay) — $20.00 —
+          <a href="https://www.ebay.com" target="_blank">Open</a>
+        </li>
+      </ul>
+
+      <h3>Relative Searches</h3>
+      <div>
+        <span class="tag"><a href="https://www.google.com/search?q=mid-century+vases" target="_blank">mid-century vases</a></span>
+        <span class="tag"><a href="https://www.google.com/search?q=ceramic+planters" target="_blank">ceramic planters</a></span>
+        <span class="tag"><a href="https://www.google.com/search?q=antique+glassware" target="_blank">antique glassware</a></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const preview = document.getElementById("preview");
+    const results = document.getElementById("results");
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+      results.style.display = "block"; // always show mock results
+    });
+  </script>
+</body>
+</html>
