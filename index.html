@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rhys Newman's Visual Finder</title>
   <style>
     body { font-family: Arial, sans-serif; background:#f3f4f6; margin:0; }
@@ -14,71 +14,72 @@
     button:hover { background:#4338ca; }
     input[type="file"] { display:none; }
     img { margin-top:20px; max-width:100%; border-radius:8px; }
-    .listing { text-align:left; margin:10px 0; padding:10px; border:1px solid #ddd; border-radius:8px; }
+    .links { text-align:left; margin-top:20px; }
+    .links a { display:block; margin:5px 0; color:#4f46e5; text-decoration:none; }
+    .links a:hover { text-decoration:underline; }
+    .priceBox { margin-top:20px; padding:10px; background:#e0e7ff; border-radius:8px; font-weight:bold; }
   </style>
 </head>
 <body>
   <header>
     <h1>Rhys Newman's Visual Finder</h1>
-    <p>Upload a screenshot or photo → Find real deals from eBay & Etsy</p>
+    <p>Upload a screenshot or photo → Find deals from eBay & Etsy</p>
   </header>
   <div class="container">
-    <input type="file" id="fileInput" accept="image/*"/>
+    <input type="file" id="fileInput" accept="image/*">
     <button id="uploadBtn">📂 Upload Image</button>
-    <img id="preview" style="display:none"/>
+    <img id="preview" style="display:none">
     <div id="results"></div>
   </div>
+
   <script>
     const fileInput = document.getElementById("fileInput");
     const uploadBtn = document.getElementById("uploadBtn");
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
-    // 👉 Change this to your backend URL when it’s live
-    const BACKEND_URL = "https://your-backend.onrender.com";
+    // Approximate "realistic" price database for popular terms
+    const priceEstimates = {
+      "panda dunk": 110,
+      "air force 1": 100,
+      "iphone": 700,
+      "macbook": 1200,
+      "jordan": 200,
+      "yeezy": 250,
+      "ps5": 500
+    };
 
     uploadBtn.addEventListener("click", () => fileInput.click());
 
-    fileInput.addEventListener("change", async (e) => {
+    fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       // Show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
-      results.innerHTML = "<h3>🔎 Recognizing item...</h3>";
 
-      const formData = new FormData();
-      formData.append("photo", file);
+      // Fake recognition using filename
+      const nameGuess = file.name.split(".")[0].replace(/[_-]/g," ").toLowerCase();
 
-      try {
-        const resp = await fetch(BACKEND_URL + "/api/searchByImage", { 
-          method: "POST", 
-          body: formData 
-        });
-        const data = await resp.json();
-
-        results.innerHTML = `<h2>Results for: ${data.query}</h2>`;
-        let sum = 0;
-        data.items.forEach(item => {
-          sum += parseFloat(item.price);
-          results.innerHTML += `
-            <div class="listing">
-              <strong>${item.title}</strong><br>
-              💲 ${item.price} ${item.currency} (${item.source})<br>
-              <a href="${item.url}" target="_blank">View on ${item.source}</a>
-            </div>
-          `;
-        });
-
-        if (data.items.length > 0) {
-          const avg = (sum / data.items.length).toFixed(2);
-          results.innerHTML += `<h3>📊 Average Price: $${avg}</h3>`;
+      // Price estimation
+      let estimatedPrice = 50; // default
+      for (let keyword in priceEstimates) {
+        if (nameGuess.includes(keyword)) {
+          estimatedPrice = priceEstimates[keyword];
+          break;
         }
-      } catch (err) {
-        results.innerHTML = "<p style='color:red'>❌ Error contacting backend</p>";
-        console.error(err);
       }
+
+      results.innerHTML = `
+        <h2>Results for: ${nameGuess}</h2>
+        <div class="priceBox">📊 Estimated Average Price: $${estimatedPrice}</div>
+        <div class="links">
+          <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on eBay</a>
+          <a href="https://www.etsy.com/search?q=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on Etsy</a>
+          <a href="https://www.facebook.com/marketplace/search/?query=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on Facebook Marketplace</a>
+        </div>
+      `;
     });
   </script>
 </body>
