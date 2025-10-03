@@ -36,45 +36,54 @@
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
-    // ⚡ Replace this with your backend URL (Render/Vercel)
+    // 👉 Change this to your backend URL later
     const BACKEND_URL = "https://yourapp.onrender.com";
 
-    uploadBtn.addEventListener("click", () => fileInput.click());
+    uploadBtn.addEventListener("click", () => {
+      fileInput.click();   // ✅ Opens the file chooser
+    });
 
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
+      // show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
+
       results.innerHTML = "<h2>Searching eBay...</h2>";
 
       const formData = new FormData();
       formData.append("photo", file);
 
-      const resp = await fetch(BACKEND_URL + "/api/searchByImage", { 
-        method: "POST", 
-        body: formData 
-      });
-      const data = await resp.json();
+      // send to backend
+      try {
+        const resp = await fetch(BACKEND_URL + "/api/searchByImage", { 
+          method: "POST", 
+          body: formData 
+        });
+        const data = await resp.json();
 
-      results.innerHTML = "<h2>eBay Results</h2>";
-      let sum = 0;
-      data.items.forEach(item => {
-        sum += parseFloat(item.price);
-        results.innerHTML += `
-          <div class="listing">
-            <strong>${item.title}</strong><br>
-            💲 ${item.price} ${item.currency} (${item.source})<br>
-            <a href="${item.url}" target="_blank">View on eBay</a>
-          </div>
-        `;
-      });
+        results.innerHTML = "<h2>eBay Results</h2>";
+        let sum = 0;
+        data.items.forEach(item => {
+          sum += parseFloat(item.price);
+          results.innerHTML += `
+            <div class="listing">
+              <strong>${item.title}</strong><br>
+              💲 ${item.price} ${item.currency} (${item.source})<br>
+              <a href="${item.url}" target="_blank">View on eBay</a>
+            </div>
+          `;
+        });
 
-      // average price
-      if (data.items.length > 0) {
-        const avg = (sum / data.items.length).toFixed(2);
-        results.innerHTML += `<h3>📊 Average Price: $${avg}</h3>`;
+        if (data.items.length > 0) {
+          const avg = (sum / data.items.length).toFixed(2);
+          results.innerHTML += `<h3>📊 Average Price: $${avg}</h3>`;
+        }
+      } catch (err) {
+        results.innerHTML = "<p style='color:red'>❌ Error contacting backend</p>";
+        console.error(err);
       }
     });
   </script>
