@@ -1,110 +1,9 @@
-// app.js
-import express from "express";
-import fetch from "node-fetch";
-import cors from "cors";
-import multer from "multer";
-import fs from "fs";
-
-const app = express();
-app.use(cors());
-
-const upload = multer({ dest: "uploads/" });
-
-// 🔑 API Keys (set these in Render/Vercel environment settings)
-const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID || "YOUR_EBAY_CLIENT_ID";
-const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET || "YOUR_EBAY_CLIENT_SECRET";
-const ETSY_API_KEY = process.env.ETSY_API_KEY || "YOUR_ETSY_API_KEY";
-
-// -------------------------
-// eBay Auth
-// -------------------------
-async function getEbayToken() {
-  const resp = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Authorization:
-        "Basic " +
-        Buffer.from(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`).toString("base64"),
-    },
-    body: "grant_type=client_credentials&scope=https://api.ebay.com/oauth/api_scope",
-  });
-  const json = await resp.json();
-  return json.access_token;
-}
-
-// -------------------------
-// eBay Search by Image
-// -------------------------
-app.post("/api/searchByImage", upload.single("photo"), async (req, res) => {
-  try {
-    const token = await getEbayToken();
-
-    const imgBuffer = fs.readFileSync(req.file.path);
-    fs.unlinkSync(req.file.path); // cleanup
-
-    const resp = await fetch("https://api.ebay.com/buy/browse/v1/item_summary/search_by_image?limit=5", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "image/jpeg",
-      },
-      body: imgBuffer
-    });
-
-    const data = await resp.json();
-
-    const items = (data.itemSummaries || []).map((item) => ({
-      title: item.title,
-      price: item.price?.value,
-      currency: item.price?.currency,
-      url: item.itemWebUrl,
-      source: "eBay (Image)"
-    }));
-
-    res.json({ items });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Image search failed" });
-  }
-});
-
-// -------------------------
-// Etsy Search by Keyword (optional extra)
-// -------------------------
-app.get("/api/searchEtsy", async (req, res) => {
-  const q = req.query.q || "shoes";
-  try {
-    const resp = await fetch(
-      `https://openapi.etsy.com/v3/application/listings/active?limit=5&keywords=${encodeURIComponent(q)}`,
-      { headers: { "x-api-key": ETSY_API_KEY } }
-    );
-    const data = await resp.json();
-    const items = (data.results || []).map((item) => ({
-      title: item.title,
-      price: item.price?.amount / 100,
-      currency: item.price?.currency_code,
-      url: `https://www.etsy.com/listing/${item.listing_id}`,
-      source: "Etsy"
-    }));
-    res.json({ items });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Etsy search failed" });
-  }
-});
-
-// -------------------------
-// Frontend Website
-// -------------------------
-app.get("/", (req, res) => {
-  res.send(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rhys Newman | Visual Finder</title>
+  <title>Rhys Newman's Visual Finder</title>
   <style>
     body { font-family: Arial, sans-serif; background: #f3f4f6; margin:0; }
     header { background:#4f46e5; color:white; padding:20px; text-align:center; }
@@ -137,6 +36,9 @@ app.get("/", (req, res) => {
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
+    // ⚡ Replace this with your backend URL (Render/Vercel)
+    const BACKEND_URL = "https://yourapp.onrender.com";
+
     uploadBtn.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", async (e) => {
@@ -150,46 +52,31 @@ app.get("/", (req, res) => {
       const formData = new FormData();
       formData.append("photo", file);
 
-      // Call eBay Image Search
-      const resp = await fetch("/api/searchByImage", { method: "POST", body: formData });
+      const resp = await fetch(BACKEND_URL + "/api/searchByImage", { 
+        method: "POST", 
+        body: formData 
+      });
       const data = await resp.json();
 
       results.innerHTML = "<h2>eBay Results</h2>";
+      let sum = 0;
       data.items.forEach(item => {
-        results.innerHTML += \`
+        sum += parseFloat(item.price);
+        results.innerHTML += `
           <div class="listing">
-            <strong>\${item.title}</strong><br>
-            💲 \${item.price} \${item.currency} (\${item.source})<br>
-            <a href="\${item.url}" target="_blank">View on eBay</a>
+            <strong>${item.title}</strong><br>
+            💲 ${item.price} ${item.currency} (${item.source})<br>
+            <a href="${item.url}" target="_blank">View on eBay</a>
           </div>
-        \`;
+        `;
       });
 
-      // Optional: Etsy too (based on first title word)
+      // average price
       if (data.items.length > 0) {
-        const keyword = data.items[0].title.split(" ")[0];
-        const etsyResp = await fetch(\`/api/searchEtsy?q=\${keyword}\`);
-        const etsyData = await etsyResp.json();
-        results.innerHTML += "<h2>Etsy Results</h2>";
-        etsyData.items.forEach(item => {
-          results.innerHTML += \`
-            <div class="listing">
-              <strong>\${item.title}</strong><br>
-              💲 \${item.price} \${item.currency} (\${item.source})<br>
-              <a href="\${item.url}" target="_blank">View on Etsy</a>
-            </div>
-          \`;
-        });
+        const avg = (sum / data.items.length).toFixed(2);
+        results.innerHTML += `<h3>📊 Average Price: $${avg}</h3>`;
       }
     });
   </script>
 </body>
 </html>
-  `);
-});
-
-// -------------------------
-// Run Server
-// -------------------------
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(\`✅ App running on http://localhost:\${PORT}\`));
