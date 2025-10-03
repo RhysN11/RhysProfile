@@ -2,24 +2,21 @@
 import express from "express";
 import fetch from "node-fetch";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
+import multer from "multer";
+import fs from "fs";
 
 const app = express();
 app.use(cors());
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const upload = multer({ dest: "uploads/" });
 
-// -------------------------
-// 🔑 API KEYS (set as env vars in Render/Vercel)
-// -------------------------
+// 🔑 API Keys (set as env vars in Render/Vercel)
 const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID || "YOUR_EBAY_CLIENT_ID";
 const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET || "YOUR_EBAY_CLIENT_SECRET";
 const ETSY_API_KEY = process.env.ETSY_API_KEY || "YOUR_ETSY_API_KEY";
 
 // -------------------------
-// eBay Token Fetch
+// eBay Auth
 // -------------------------
 async function getEbayToken() {
   const resp = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {
@@ -37,58 +34,63 @@ async function getEbayToken() {
 }
 
 // -------------------------
-// eBay Search by Keyword
+// eBay Search by Image
 // -------------------------
-async function searchEbay(q) {
-  const token = await getEbayToken();
-  const resp = await fetch(
-    `https://api.ebay.com/buy/browse/v1/item_summary/search?q=${encodeURIComponent(
-      q
-    )}&limit=5`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  const data = await resp.json();
-  return (data.itemSummaries || []).map((item) => ({
-    title: item.title,
-    price: item.price?.value,
-    currency: item.price?.currency,
-    url: item.itemWebUrl,
-    source: "eBay",
-  }));
-}
-
-// -------------------------
-// Etsy Search
-// -------------------------
-async function searchEtsy(q) {
-  const resp = await fetch(
-    `https://openapi.etsy.com/v3/application/listings/active?limit=5&keywords=${encodeURIComponent(
-      q
-    )}`,
-    { headers: { "x-api-key": ETSY_API_KEY } }
-  );
-  const data = await resp.json();
-  return (data.results || []).map((item) => ({
-    title: item.title,
-    price: item.price?.amount / 100,
-    currency: item.price?.currency_code,
-    url: `https://www.etsy.com/listing/${item.listing_id}`,
-    source: "Etsy",
-  }));
-}
-
-// -------------------------
-// API Route
-// -------------------------
-app.get("/api/search", async (req, res) => {
-  const q = req.query.q || "shoes";
-
+app.post("/api/searchByImage", upload.single("photo"), async (req, res) => {
   try {
-    const [ebay, etsy] = await Promise.all([searchEbay(q), searchEtsy(q)]);
-    res.json({ items: [...ebay, ...etsy] });
+    const token = await getEbayToken();
+
+    const imgBuffer = fs.readFileSync(req.file.path);
+    fs.unlinkSync(req.file.path); // cleanup
+
+    const resp = await fetch("https://api.ebay.com/buy/browse/v1/item_summary/search_by_image?limit=5", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "image/jpeg",
+      },
+      body: imgBuffer
+    });
+
+    const data = await resp.json();
+
+    const items = (data.itemSummaries || []).map((item) => ({
+      title: item.title,
+      price: item.price?.value,
+      currency: item.price?.currency,
+      url: item.itemWebUrl,
+      source: "eBay (Image)"
+    }));
+
+    res.json({ items });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch marketplace data" });
+    res.status(500).json({ error: "Image search failed" });
+  }
+});
+
+// -------------------------
+// Etsy Search by Keyword (optional extra)
+// -------------------------
+app.get("/api/searchEtsy", async (req, res) => {
+  const q = req.query.q || "shoes";
+  try {
+    const resp = await fetch(
+      `https://openapi.etsy.com/v3/application/listings/active?limit=5&keywords=${encodeURIComponent(q)}`,
+      { headers: { "x-api-key": ETSY_API_KEY } }
+    );
+    const data = await resp.json();
+    const items = (data.results || []).map((item) => ({
+      title: item.title,
+      price: item.price?.amount / 100,
+      currency: item.price?.currency_code,
+      url: `https://www.etsy.com/listing/${item.listing_id}`,
+      source: "Etsy"
+    }));
+    res.json({ items });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Etsy search failed" });
   }
 });
 
@@ -100,32 +102,34 @@ app.get("/", (req, res) => {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rhys Newman | Visual Item Finder</title>
+  <title>Rhys Newman | Visual Finder</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f3f4f6; margin: 0; }
-    header { background: #4f46e5; color: white; padding: 20px; text-align: center; }
-    .container { max-width: 900px; margin: 30px auto; padding: 20px; background: white;
-      border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
-    button { padding: 15px 25px; border: none; border-radius: 8px; background: #4f46e5;
-      color: white; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
-    button:hover { background: #4338ca; }
-    input[type="file"] { display: none; }
-    .listing { text-align: left; margin: 10px 0; padding: 10px; border: 1px solid #ddd;
-      border-radius: 8px; }
+    body { font-family: Arial, sans-serif; background: #f3f4f6; margin:0; }
+    header { background:#4f46e5; color:white; padding:20px; text-align:center; }
+    .container { max-width:800px; margin:20px auto; padding:20px; background:white; 
+      border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); text-align:center; }
+    button { padding:15px 25px; border:none; border-radius:8px; background:#4f46e5; color:white;
+      font-size:18px; font-weight:bold; cursor:pointer; margin-top:20px; }
+    button:hover { background:#4338ca; }
+    input[type="file"] { display:none; }
+    img { margin-top:20px; max-width:100%; border-radius:8px; }
+    .listing { text-align:left; margin:10px 0; padding:10px; border:1px solid #ddd; border-radius:8px; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Rhys Newman's Visual Item Finder</h1>
-    <p>Collector • Bargain hunter • Maker</p>
+    <h1>Rhys Newman's Visual Finder</h1>
+    <p>Take a photo → See real deals from eBay & Etsy</p>
   </header>
   <div class="container">
-    <input type="file" accept="image/*" capture="environment" id="fileInput">
-    <button id="takePhotoBtn">📷 Take Photo</button>
-    <img id="preview" style="display:none; max-width:100%; margin-top:20px; border-radius:8px;" />
-    <div id="results" style="margin-top:20px;"></div>
+    <form id="uploadForm">
+      <input type="file" id="fileInput" name="photo" accept="image/*" capture="environment"/>
+      <button type="button" id="takePhotoBtn">📷 Take Photo</button>
+    </form>
+    <img id="preview" style="display:none"/>
+    <div id="results"></div>
   </div>
   <script>
     const fileInput = document.getElementById("fileInput");
@@ -139,31 +143,44 @@ app.get("/", (req, res) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // Preview photo
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
+      results.innerHTML = "<h2>Searching eBay...</h2>";
 
-      // Basic recognition: filename keywords
-      let keyword = "collectibles";
-      if (file.name.toLowerCase().includes("shoe")) keyword = "shoes";
-      else if (file.name.toLowerCase().includes("vase")) keyword = "vase";
+      const formData = new FormData();
+      formData.append("photo", file);
 
-      results.innerHTML = \`<h2>Searching for "\${keyword}"...</h2>\`;
-
-      // Call backend
-      const resp = await fetch(\`/api/search?q=\${keyword}\`);
+      // Call eBay Image Search
+      const resp = await fetch("/api/searchByImage", { method: "POST", body: formData });
       const data = await resp.json();
 
-      results.innerHTML = \`<h2>Best Deals for "\${keyword}"</h2>\`;
+      results.innerHTML = "<h2>eBay Results</h2>";
       data.items.forEach(item => {
         results.innerHTML += \`
           <div class="listing">
             <strong>\${item.title}</strong><br>
             💲 \${item.price} \${item.currency} (\${item.source})<br>
-            <a href="\${item.url}" target="_blank">View Deal</a>
+            <a href="\${item.url}" target="_blank">View on eBay</a>
           </div>
         \`;
       });
+
+      // Optional: Etsy too (based on first title word)
+      if (data.items.length > 0) {
+        const keyword = data.items[0].title.split(" ")[0];
+        const etsyResp = await fetch(\`/api/searchEtsy?q=\${keyword}\`);
+        const etsyData = await etsyResp.json();
+        results.innerHTML += "<h2>Etsy Results</h2>";
+        etsyData.items.forEach(item => {
+          results.innerHTML += \`
+            <div class="listing">
+              <strong>\${item.title}</strong><br>
+              💲 \${item.price} \${item.currency} (\${item.source})<br>
+              <a href="\${item.url}" target="_blank">View on Etsy</a>
+            </div>
+          \`;
+        });
+      }
     });
   </script>
 </body>
