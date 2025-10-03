@@ -12,7 +12,9 @@
     button { padding:15px 25px; border:none; border-radius:8px; background:#4f46e5; color:white;
       font-size:18px; font-weight:bold; cursor:pointer; margin-top:20px; }
     button:hover { background:#4338ca; }
+    input[type="file"], input[type="text"] { margin-top:15px; }
     input[type="file"] { display:none; }
+    input[type="text"] { padding:10px; width:80%; border-radius:6px; border:1px solid #ccc; font-size:16px; }
     img { margin-top:20px; max-width:100%; border-radius:8px; }
     .links { text-align:left; margin-top:20px; }
     .links a { display:block; margin:5px 0; color:#4f46e5; text-decoration:none; }
@@ -23,7 +25,7 @@
 <body>
   <header>
     <h1>Rhys Newman's Visual Finder</h1>
-    <p>Upload a screenshot or photo → Get realistic prices & links</p>
+    <p>Upload a screenshot or photo → Describe it → Get realistic prices & links</p>
   </header>
 
   <div class="container">
@@ -33,6 +35,11 @@
     <button id="uploadBtn">📂 Upload Image</button>
     <!-- image preview -->
     <img id="preview" style="display:none">
+    <!-- description input -->
+    <div id="descBox" style="display:none; margin-top:20px;">
+      <input type="text" id="description" placeholder="What is this item? (e.g. Jordan 4 Retro)">
+      <button id="searchBtn">Search</button>
+    </div>
     <!-- results -->
     <div id="results"></div>
   </div>
@@ -41,9 +48,12 @@
     const fileInput = document.getElementById("fileInput");
     const uploadBtn = document.getElementById("uploadBtn");
     const preview = document.getElementById("preview");
+    const descBox = document.getElementById("descBox");
+    const descriptionInput = document.getElementById("description");
+    const searchBtn = document.getElementById("searchBtn");
     const results = document.getElementById("results");
 
-    // Expanded database of estimated prices
+    // Price dictionary
     const priceEstimates = {
       "panda dunk": 100,
       "jordan": 300,
@@ -61,41 +71,45 @@
     };
 
     // When button is clicked, open the file picker
-    uploadBtn.addEventListener("click", () => {
-      fileInput.click();
-    });
+    uploadBtn.addEventListener("click", () => fileInput.click());
 
     // When a file is chosen
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
-
       // show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
+      descBox.style.display = "block"; // show description input
+    });
 
-      // guess product name from file name
-      const nameGuess = file.name.split(".")[0].replace(/[_-]/g," ").toLowerCase();
+    // When search button is clicked
+    searchBtn.addEventListener("click", () => {
+      const query = descriptionInput.value.trim().toLowerCase();
+      if (!query) {
+        alert("Please enter a description of the item.");
+        return;
+      }
 
-      // check price database
-      let estimatedPrice = 50; // fallback
-      let matchedKeyword = "item";
+      // find a price match
+      let estimatedPrice = 50; // default fallback
+      let matchedKeyword = query;
       for (let keyword in priceEstimates) {
-        if (nameGuess.includes(keyword)) {
+        if (query.includes(keyword)) {
           estimatedPrice = priceEstimates[keyword];
           matchedKeyword = keyword;
           break;
         }
       }
 
-      // show results
+      // display results
       results.innerHTML = `
-        <h2>Results for: ${matchedKeyword}</h2>
+        <h2>Results for: ${query}</h2>
         <div class="priceBox">📊 Estimated Average Price: $${estimatedPrice}</div>
         <div class="links">
-          <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on eBay</a>
-          <a href="https://www.etsy.com/search?q=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on Etsy</a>
-          <a href="https://www.facebook.com/marketplace/search/?query=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on Facebook Marketplace</a>
+          <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}" target="_blank">🔎 Search on eBay</a>
+          <a href="https://www.etsy.com/search?q=${encodeURIComponent(query)}" target="_blank">🔎 Search on Etsy</a>
+          <a href="https://www.facebook.com/marketplace/search/?query=${encodeURIComponent(query)}" target="_blank">🔎 Search on Facebook Marketplace</a>
         </div>
       `;
     });
