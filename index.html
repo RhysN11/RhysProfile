@@ -23,12 +23,17 @@
 <body>
   <header>
     <h1>Rhys Newman's Visual Finder</h1>
-    <p>Upload a screenshot or photo → Find deals from eBay & Etsy</p>
+    <p>Upload a screenshot or photo → Get realistic prices & links</p>
   </header>
+
   <div class="container">
+    <!-- hidden file input -->
     <input type="file" id="fileInput" accept="image/*">
+    <!-- visible button -->
     <button id="uploadBtn">📂 Upload Image</button>
+    <!-- image preview -->
     <img id="preview" style="display:none">
+    <!-- results -->
     <div id="results"></div>
   </div>
 
@@ -38,7 +43,7 @@
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
-    // Approximate "realistic" price database for popular terms
+    // Approximate "realistic" prices for known items
     const priceEstimates = {
       "panda dunk": 110,
       "air force 1": 100,
@@ -49,21 +54,25 @@
       "ps5": 500
     };
 
-    uploadBtn.addEventListener("click", () => fileInput.click());
+    // When button is clicked, open the file picker
+    uploadBtn.addEventListener("click", () => {
+      fileInput.click();
+    });
 
+    // When a file is chosen
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // Show preview
+      // show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
 
-      // Fake recognition using filename
+      // guess product name from file name
       const nameGuess = file.name.split(".")[0].replace(/[_-]/g," ").toLowerCase();
 
-      // Price estimation
-      let estimatedPrice = 50; // default
+      // estimate price
+      let estimatedPrice = 50; // fallback
       for (let keyword in priceEstimates) {
         if (nameGuess.includes(keyword)) {
           estimatedPrice = priceEstimates[keyword];
@@ -71,6 +80,7 @@
         }
       }
 
+      // show results
       results.innerHTML = `
         <h2>Results for: ${nameGuess}</h2>
         <div class="priceBox">📊 Estimated Average Price: $${estimatedPrice}</div>
