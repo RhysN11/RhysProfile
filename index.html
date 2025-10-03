@@ -10,7 +10,7 @@ app.use(cors());
 
 const upload = multer({ dest: "uploads/" });
 
-// 🔑 API Keys (set as env vars in Render/Vercel)
+// 🔑 API Keys (set these in Render/Vercel environment settings)
 const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID || "YOUR_EBAY_CLIENT_ID";
 const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET || "YOUR_EBAY_CLIENT_SECRET";
 const ETSY_API_KEY = process.env.ETSY_API_KEY || "YOUR_ETSY_API_KEY";
@@ -121,23 +121,23 @@ app.get("/", (req, res) => {
 <body>
   <header>
     <h1>Rhys Newman's Visual Finder</h1>
-    <p>Take a photo → See real deals from eBay & Etsy</p>
+    <p>Upload a screenshot or photo → See real deals from eBay & Etsy</p>
   </header>
   <div class="container">
     <form id="uploadForm">
-      <input type="file" id="fileInput" name="photo" accept="image/*" capture="environment"/>
-      <button type="button" id="takePhotoBtn">📷 Take Photo</button>
+      <input type="file" id="fileInput" name="photo" accept="image/*"/>
+      <button type="button" id="uploadBtn">📂 Upload Image</button>
     </form>
     <img id="preview" style="display:none"/>
     <div id="results"></div>
   </div>
   <script>
     const fileInput = document.getElementById("fileInput");
-    const takePhotoBtn = document.getElementById("takePhotoBtn");
+    const uploadBtn = document.getElementById("uploadBtn");
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
-    takePhotoBtn.addEventListener("click", () => fileInput.click());
+    uploadBtn.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files[0];
