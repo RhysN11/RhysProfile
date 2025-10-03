@@ -53,37 +53,55 @@
     const searchBtn = document.getElementById("searchBtn");
     const results = document.getElementById("results");
 
-    // Price dictionary
+    // Expanded Price Database
     const priceEstimates = {
+      // Sneakers
       "panda dunk": 100,
-      "jordan": 300,
+      "jordan 1": 180,
+      "jordan 4": 250,
       "jordans": 300,
       "air force 1": 100,
       "yeezy": 250,
-      "nike": 120,
+      "nike dunk": 120,
+      "travis scott jordan": 500,
+
+      // Electronics
       "ps5": 500,
       "playstation": 500,
-      "xbox": 300,
-      "iphone": 700,
-      "macbook": 1200,
+      "xbox series x": 450,
+      "xbox series s": 300,
+      "nintendo switch": 250,
+      "switch oled": 300,
+      "gaming pc": 1000,
+      "gaming laptop": 1200,
+      "gaming monitor": 300,
+      "keyboard": 100,
+      "mouse": 50,
+
+      // Apple
+      "iphone 14": 800,
+      "iphone 15": 1000,
+      "macbook pro": 1500,
+      "macbook air": 1200,
+      "ipad pro": 1000,
       "ipad": 400,
-      "switch": 250
+      "airpods": 150,
+      "apple watch": 300
     };
 
-    // When button is clicked, open the file picker
+    // Open file picker when button is clicked
     uploadBtn.addEventListener("click", () => fileInput.click());
 
-    // When a file is chosen
+    // Show preview after choosing file
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      // show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
       descBox.style.display = "block"; // show description input
     });
 
-    // When search button is clicked
+    // Handle search button
     searchBtn.addEventListener("click", () => {
       const query = descriptionInput.value.trim().toLowerCase();
       if (!query) {
@@ -91,21 +109,21 @@
         return;
       }
 
-      // find a price match
-      let estimatedPrice = 50; // default fallback
+      // match price from dictionary
+      let estimatedPrice = "N/A";
       let matchedKeyword = query;
       for (let keyword in priceEstimates) {
         if (query.includes(keyword)) {
-          estimatedPrice = priceEstimates[keyword];
+          estimatedPrice = "$" + priceEstimates[keyword];
           matchedKeyword = keyword;
           break;
         }
       }
 
-      // display results
+      // results box
       results.innerHTML = `
         <h2>Results for: ${query}</h2>
-        <div class="priceBox">📊 Estimated Average Price: $${estimatedPrice}</div>
+        <div class="priceBox">📊 Estimated Average Price: ${estimatedPrice}</div>
         <div class="links">
           <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}" target="_blank">🔎 Search on eBay</a>
           <a href="https://www.etsy.com/search?q=${encodeURIComponent(query)}" target="_blank">🔎 Search on Etsy</a>
