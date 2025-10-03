@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rhys Newman's Visual Finder</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f3f4f6; margin:0; }
+    body { font-family: Arial, sans-serif; background:#f3f4f6; margin:0; }
     header { background:#4f46e5; color:white; padding:20px; text-align:center; }
-    .container { max-width:800px; margin:20px auto; padding:20px; background:white; 
+    .container { max-width:700px; margin:20px auto; padding:20px; background:white;
       border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); text-align:center; }
     button { padding:15px 25px; border:none; border-radius:8px; background:#4f46e5; color:white;
       font-size:18px; font-weight:bold; cursor:pointer; margin-top:20px; }
@@ -20,13 +20,11 @@
 <body>
   <header>
     <h1>Rhys Newman's Visual Finder</h1>
-    <p>Upload a screenshot or photo → See real deals from eBay & Etsy</p>
+    <p>Upload a screenshot or photo → Find real deals from eBay & Etsy</p>
   </header>
   <div class="container">
-    <form id="uploadForm">
-      <input type="file" id="fileInput" name="photo" accept="image/*"/>
-      <button type="button" id="uploadBtn">📂 Upload Image</button>
-    </form>
+    <input type="file" id="fileInput" accept="image/*"/>
+    <button id="uploadBtn">📂 Upload Image</button>
     <img id="preview" style="display:none"/>
     <div id="results"></div>
   </div>
@@ -36,27 +34,23 @@
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
-    // 👉 Change this to your backend URL later
-    const BACKEND_URL = "https://yourapp.onrender.com";
+    // 👉 Change this to your backend URL when it’s live
+    const BACKEND_URL = "https://your-backend.onrender.com";
 
-    uploadBtn.addEventListener("click", () => {
-      fileInput.click();   // ✅ Opens the file chooser
-    });
+    uploadBtn.addEventListener("click", () => fileInput.click());
 
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // show preview
+      // Show preview
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
-
-      results.innerHTML = "<h2>Searching eBay...</h2>";
+      results.innerHTML = "<h3>🔎 Recognizing item...</h3>";
 
       const formData = new FormData();
       formData.append("photo", file);
 
-      // send to backend
       try {
         const resp = await fetch(BACKEND_URL + "/api/searchByImage", { 
           method: "POST", 
@@ -64,7 +58,7 @@
         });
         const data = await resp.json();
 
-        results.innerHTML = "<h2>eBay Results</h2>";
+        results.innerHTML = `<h2>Results for: ${data.query}</h2>`;
         let sum = 0;
         data.items.forEach(item => {
           sum += parseFloat(item.price);
@@ -72,7 +66,7 @@
             <div class="listing">
               <strong>${item.title}</strong><br>
               💲 ${item.price} ${item.currency} (${item.source})<br>
-              <a href="${item.url}" target="_blank">View on eBay</a>
+              <a href="${item.url}" target="_blank">View on ${item.source}</a>
             </div>
           `;
         });
