@@ -43,15 +43,21 @@
     const preview = document.getElementById("preview");
     const results = document.getElementById("results");
 
-    // Approximate "realistic" prices for known items
+    // Expanded database of estimated prices
     const priceEstimates = {
-      "panda dunk": 110,
+      "panda dunk": 100,
+      "jordan": 300,
+      "jordans": 300,
       "air force 1": 100,
+      "yeezy": 250,
+      "nike": 120,
+      "ps5": 500,
+      "playstation": 500,
+      "xbox": 300,
       "iphone": 700,
       "macbook": 1200,
-      "jordan": 200,
-      "yeezy": 250,
-      "ps5": 500
+      "ipad": 400,
+      "switch": 250
     };
 
     // When button is clicked, open the file picker
@@ -71,18 +77,20 @@
       // guess product name from file name
       const nameGuess = file.name.split(".")[0].replace(/[_-]/g," ").toLowerCase();
 
-      // estimate price
+      // check price database
       let estimatedPrice = 50; // fallback
+      let matchedKeyword = "item";
       for (let keyword in priceEstimates) {
         if (nameGuess.includes(keyword)) {
           estimatedPrice = priceEstimates[keyword];
+          matchedKeyword = keyword;
           break;
         }
       }
 
       // show results
       results.innerHTML = `
-        <h2>Results for: ${nameGuess}</h2>
+        <h2>Results for: ${matchedKeyword}</h2>
         <div class="priceBox">📊 Estimated Average Price: $${estimatedPrice}</div>
         <div class="links">
           <a href="https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(nameGuess)}" target="_blank">🔎 Search on eBay</a>
